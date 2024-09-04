@@ -1,0 +1,77 @@
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+
+# Initialize a Spark session
+spark = SparkSession.builder \
+    .appName("Advanced DataFrame Operations - Different Dataset") \
+    .getOrCreate()
+
+# Create two sample DataFrames for Product Sales
+data1 = [
+    (1, 'Product A', 'Electronics', 1200, '2022-05-10'),
+    (2, 'Product B', 'Clothing', 500, '2022-07-15'),
+    (3, 'Product C', 'Electronics', 1800, '2021-11-05')
+]
+
+data2 = [
+    (4, 'Product D', 'Furniture', 3000, '2022-03-25'),
+    (5, 'Product E', 'Clothing', 800, '2022-09-12'),
+    (6, 'Product F', 'Electronics', 1500, '2021-10-19')
+]
+
+# Define schema (columns)
+columns = ['ProductID', 'ProductName', 'Category', 'Price', 'SaleDate']
+
+# Create DataFrames
+sales_df1 = spark.createDataFrame(data1, columns)
+sales_df2 = spark.createDataFrame(data2, columns)
+
+
+sales_df1.show()
+sales_df2.show()
+
+
+
+# Task 1: Union of DataFrames (removing duplicates)
+combined_df = sales_df1.union(sales_df2).distinct()
+combined_df.show()
+
+# Task 2: Union of DataFrames (including duplicates)
+combined_with_duplicates_df = sales_df1.union(sales_df2)
+combined_with_duplicates_df.show()
+
+# Task 3: Rank products by price within their category
+window_spec = Window.partitionBy('Category').orderBy(F.col('Price').desc())
+ranked_products_df = combined_df.withColumn('Rank', F.row_number().over(window_spec))
+ranked_products_df.show()
+
+# Task 4: Calculate cumulative price per category
+cumulative_window_spec = Window.partitionBy('Category').orderBy('SaleDate').rowsBetween(Window.unboundedPreceding, Window.currentRow)
+cumulative_price_df = combined_df.withColumn('CumulativePrice', F.sum('Price').over(cumulative_window_spec))
+cumulative_price_df.show()
+
+# Task 5: Convert SaleDate from string to date type
+sales_df_with_date = combined_df.withColumn('SaleDate', F.to_date('SaleDate', 'yyyy-MM-dd'))
+sales_df_with_date.show()
+
+# Task 6: Calculate the number of days since each sale
+current_date = F.current_date()
+days_since_sale_df = sales_df_with_date.withColumn('DaysSinceSale', F.datediff(current_date, 'SaleDate'))
+days_since_sale_df.show()
+
+# Task 7: Add a column for the next sale deadline
+sales_with_deadline_df = days_since_sale_df.withColumn('NextSaleDeadline', F.date_add('SaleDate', 30))
+sales_with_deadline_df.show()
+
+# Task 8: Calculate total revenue and average price per category
+revenue_and_avg_price_df = sales_with_deadline_df.groupBy('Category') \
+    .agg(
+        F.sum('Price').alias('TotalRevenue'),
+        F.avg('Price').alias('AveragePrice')
+    )
+revenue_and_avg_price_df.show()
+
+# Task 9: Convert all product names to lowercase
+lowercase_product_names_df = sales_with_deadline_df.withColumn('ProductNameLowercase', F.lower('ProductName'))
+lowercase_product_names_df.show()
