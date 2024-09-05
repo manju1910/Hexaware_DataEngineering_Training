@@ -1,0 +1,50 @@
+import pandas as pd
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+ 
+# Create a sample CSV data
+data = {
+    "name": ["John", "Jane", "Mike", "Emily", "Alex"],
+    "age": [28, 32, 45, 23, 36],
+    "gender": ["Male", "Female", "Male", "Female", "Male"],
+    "salary": [60000, 72000, 84000, 52000, 67000]
+}
+ 
+df = pd.DataFrame(data)
+ 
+# Save the DataFrame as a CSV file
+csv_file_path = "/content/sample_people.csv"
+df.to_csv(csv_file_path, index=False)
+ 
+# Confirm the CSV file is created
+print(f"CSV file created at: {csv_file_path}")
+
+# Initialize Spark Session
+spark = SparkSession.builder.appName("EmployeeSalaryETL").getOrCreate()
+
+# Load the employee data from CSV
+file_path = "path/to/employee_data.csv"  # Replace with the actual file path
+df = spark.read.csv(csv_file_path, header=True, inferSchema=True)
+
+# Filter employees aged 30 and above
+df_filtered = df.filter(df.age >= 30)
+df_filtered.show()
+
+# Add a new column for salary with bonus
+df_transformed = df_filtered.withColumn("salary_with_bonus", col("salary") * 1.10)
+df_transformed.show()
+
+# Group by gender and compute the average salary
+df_aggregated = df_transformed.groupBy("gender").agg({"salary": "avg"})
+df_aggregated = df_aggregated.withColumnRenamed("avg(salary)", "average_salary")
+df_aggregated.show()
+
+# Define output paths
+transformed_file_path = "path/to/transformed_employee_data.parquet"
+aggregated_file_path = "path/to/aggregated_salary_by_gender.parquet"
+
+# Save the transformed DataFrame to Parquet
+df_transformed.write.parquet(transformed_file_path, mode="overwrite")
+
+# Save the aggregated DataFrame to Parquet
+df_aggregated.write.parquet(aggregated_file_path, mode="overwrite")
