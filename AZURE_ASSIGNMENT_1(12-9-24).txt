@@ -1,0 +1,138 @@
+--------------ASSIGNMENT 1
+
+# Move the file from Workspace to DBFS
+
+dbutils.fs.cp("file:/Workspace/Shared/employee_data.csv", "dbfs:/FileStore/employee_data.csv")
+
+#Read the data from the csv file
+
+df_csv=spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("dbfs:/FileStore/employee_data.csv")
+df_csv.show()
+
+# 1. Load the CSV data:
+
+# Load the employee_data.csv file into a DataFrame.
+# Display the first 10 rows and inspect the schema.
+# Load CSV data
+df_employee = spark.read.csv('/FileStore/employee_data.csv', header=True, inferSchema=True)
+df_employee.show(10)
+df_employee.printSchema()
+
+# 2. Data Cleaning:
+
+# Remove rows where the Salary is less than 55,000.
+# Filter the employees who joined after the year 2020.
+df_cleaned = df_employee.filter((df_employee['Salary'] >= 55000) & (df_employee['JoiningDate'] > '2020-01-01'))
+df_cleaned.show()
+
+# 3. Data Aggregation:
+
+# Find the average salary by Department.
+df_avg_salary_by_dept = df_cleaned.groupBy('Department').agg({'Salary': 'avg'}).withColumnRenamed('avg(Salary)', 'AvgSalary')
+df_avg_salary_by_dept.show()
+
+# Count the number of employees in each Department.
+
+df_count_by_dept = df_cleaned.groupBy('Department').count().withColumnRenamed('count', 'EmployeeCount')
+df_count_by_dept.show()
+
+# 4. Write the Data to CSV:
+
+# Save the cleaned data (from the previous steps) to a new CSV file.
+df_cleaned.coalesce(1).write.csv('/dbfs/FileStore/cleaned_employee_data.csv', header=True)
+
+
+
+--------------------ASSIGNMENT 2
+
+
+dbutils.fs.cp("file:/Workspace/Shared/product_data.json", "dbfs:/FileStore/product_data.json")
+
+# 1. Load the JSON data:
+# Load the product_data.json file into a DataFrame.
+# Display the first 10 rows and inspect the schema.
+
+df = spark.read.option("multiline", "true").json("/FileStore/product_data.json")
+df.show(10)
+df.printSchema()
+
+# 2. Data Cleaning:
+# Remove rows where Stock is less than 30.
+# Filter the products that belong to the "Electronics" category.
+
+df_cleaned_product = df.filter((df['Stock'] >= 30) & (df['Category'] == 'Electronics'))
+df_cleaned_product.show()
+
+# 3. Data Aggregation:
+# Calculate the total stock for products in the "Furniture" category.
+
+df_total_furniture_stock = df.filter(df['Category'] == 'Furniture').groupBy('Category').agg({'Stock': 'sum'}).withColumnRenamed('sum(Stock)', 'TotalStock')
+df_total_furniture_stock.show()
+
+# Find the average price of all products in the dataset.
+
+df_avg_price = df.groupBy('Category').agg({'Price': 'avg'}).withColumnRenamed('avg(Price)', 'AvgPrice')
+df_avg_price.show()
+
+# 4. Write the Data to JSON:
+# Save the cleaned and aggregated data into a new JSON file.
+
+df_cleaned_product.coalesce(1).write.json('/FileStore/cleaned_product_data.json')
+
+
+------------------ASSIGNMENT 3
+
+
+# Load employee.csv file data
+
+df_employee = spark.read.csv('/FileStore/employee_data.csv', header=True, inferSchema=True).cache()
+df_employee.show()
+df_employee.printSchema()
+
+# Load product_data.json file
+
+df = spark.read.option("multiline", "true").json("/FileStore/product_data.json")
+df.show(10)
+df.printSchema()
+
+# 2. Convert CSV and JSON Data to Delta Format
+
+df_employee.write.format("delta").mode("overwrite").save("/dbfs/FileStore/delta/employee_data")
+df.write.format("delta").mode("overwrite").save("/dbfs/FileStore/delta/product_data")
+
+# 3. Register Delta Tables as SQL Tables
+
+spark.sql("CREATE TABLE IF NOT EXISTS employee_delta USING DELTA LOCATION '/dbfs/FileStore/delta/employee_data'")
+spark.sql("CREATE TABLE IF NOT EXISTS product_delta USING DELTA LOCATION '/dbfs/FileStore/delta/product_data'")
+
+# 3. Data Modifications with Delta Tables
+# Increase salary by 5% for IT department employees
+
+spark.sql("UPDATE employee_delta SET Salary = Salary * 1.05 WHERE Department = 'IT'")
+
+# Delete products where stock is less than 40
+
+spark.sql("DELETE FROM product_delta WHERE Stock < 40")
+
+# 4. Time Travel with Delta Tables:
+# Query the product Delta table to show its state before the delete
+# operation (use time travel).
+
+df_product_version_before_delete = spark.sql("SELECT * FROM product_delta VERSION AS OF 0")
+df_product_version_before_delete.show()
+
+# Retrieve the version of the employee Delta table before the salary update.
+
+df_employee_version_before_update = spark.sql("SELECT * FROM employee_delta VERSION AS OF 0")
+df_employee_version_before_update.show()
+
+# 5. Query Delta Tables:
+# Query the employee Delta table to find the employees in the Finance department.
+
+df_finance_employees = spark.sql("SELECT * FROM employee_delta WHERE Department = 'Finance'")
+df_finance_employees.show()
+
+# Query the product Delta table to find all products in the Electronics category with a price greater than 500.
+
+df_expensive_electronics = spark.sql("SELECT * FROM product_delta WHERE Category = 'Electronics' AND Price > 500")
+df_expensive_electronics.show()
