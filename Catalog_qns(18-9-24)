@@ -1,0 +1,145 @@
+ #task 2
+ 
+ %sql
+CREATE CATALOG marketing;
+CREATE CATALOG engineering;
+CREATE CATALOG operations;
+
+
+
+#task 3
+
+%sql
+CREATE SCHEMA marketing.ads_data;
+CREATE SCHEMA marketing.customer_data;
+
+CREATE SCHEMA engineering.projects;
+CREATE SCHEMA engineering.development_data;
+
+CREATE SCHEMA operations.logistics_data;
+CREATE SCHEMA operations.supply_chain;
+
+
+#task 4 and 5
+
+#Marketing Catalog:
+
+CREATE TABLE Marketing.ads_data.ad_details (
+ad_id int,
+impressions int,
+clicks int,
+cost_per_click double);
+
+
+CREATE TABLE Marketing.customer_data.customer_detail(
+cust_id int,
+ad_id int);
+
+
+# Engineering Catalog:
+
+CREATE TABLE Engineering.projects.project_data(
+project_id int,
+project_name string);
+
+CREATE TABLE Engineering.projects.development_data(
+dev_id int,
+project_id int,
+start_data date,
+end_date date);
+
+
+#Operations Catalog:
+
+CREATE TABLE Operations.logistics_data.logistics (
+shipment_id int,
+status string);
+
+CREATE TABLE Operations.supply_chain.supply_chain_data(
+Id_no int,
+origin string,
+destination string,
+shipment_id int);
+
+
+#Data insertion
+
+INSERT INTO Marketing.ads_data.ad_details (ad_id, impressions, clicks,
+cost_per_click)
+VALUES
+(11, 1213, 234, 0.24),
+(22, 230, 324, 0.10),
+(33, 12000, 400, 0.50);
+
+INSERT INTO Marketing.customer_data.customer_detail (cust_id, ad_id)
+VALUES
+(11, 1),
+(12, 2),
+(13, 3);
+
+INSERT INTO Engineering.projects.project_data (project_id, project_name)
+VALUES
+(1, 'web development'),
+(2, 'UI/UX'),
+(3, 'Database Optimization');
+
+INSERT INTO Engineering.projects.development_data (dev_id, project_id,
+start_data, end_date)
+VALUES
+(1, 1, '2022-04-01', '2024-06-30'),
+(2, 2, '2020-03-2', '2024-12-31'),
+(3, 3, '2023-02-23', '2024-04-30');
+
+INSERT INTO Operations.logistics_data.logistics (shipment_id, status)
+VALUES
+(11, 'Delivered'),
+(12, 'In Transit'),
+(13, 'Processing');
+
+INSERT INTO Operations.supply_chain.supply_chain_data (Id_no, origin, destination,
+shipment_id)
+VALUES
+(1, 'Namakkal', 'Bangalore', 11),
+(2, 'Salem', 'Hyderabad', 12),
+(3, 'Chennai', 'Mumbai', 13);
+
+
+#task 6
+
+
+CREATE ROLE marketing_role;
+CREATE ROLE engineering_role;
+CREATE ROLE operations_role;
+
+
+#task 7
+
+# Marketing role:
+GRANT SELECT ON TABLE Marketing.customer_data.customer_detail TO marketing_role;
+GRANT SELECT ON TABLE Marketing.ads_data.ad_details TO marketing_role;
+
+# Engineering role:
+GRANT SELECT ON TABLE Engineering.projects.project_data TO engineering_role;
+GRANT SELECT ON TABLE Engineering.projects.development_data TO engineering_role;
+
+#Operations role:
+GRANT SELECT ON TABLE operations.logistics_data.logistics TO operations_role;
+GRANT SELECT ON TABLE operations.supply_chain.supply_chain_data TO operations_role;
+
+
+#Task 8: Enable and Explore Data Lineage:
+#Task 9: Monitor Data Access and Modifications:
+
+
+
+
+#task 10
+
+DESCRIBE TABLE marketing.ads_data;
+DESCRIBE TABLE Engineering.projects.project_data;
+DESCRIBE TABLE Engineering.projects.development_data;
+DESCRIBE TABLE Marketing.customer_data.customer_detail;
+
+
+
+
